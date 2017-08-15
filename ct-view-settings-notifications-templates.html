@@ -1,5 +1,22 @@
 <link rel="import" href="../polymer/polymer.html">
 
+<link rel="import" href="../iron-pages/iron-pages.html">
+<link rel="import" href="../app-route/app-route.html">
+
+<link rel="import" href="../paper-tabs/paper-tabs.html">
+<link rel="import" href="../paper-material/paper-material.html">
+<link rel="import" href="../paper-progress/paper-progress.html">
+<link rel="import" href="../paper-input/paper-input-behavior.html">
+<link rel="import" href="../paper-dropdown-menu/paper-dropdown-menu.html">
+<link rel="import" href="../paper-listbox/paper-listbox.html">
+<link rel="import" href="../paper-item/paper-item.html">
+
+<link rel="import" href="../ct-core-utils/ct-app-styles.html">
+<link rel="import" href="../ct-core-utils/ct-api-consumer-behaviour.html">
+
+<link rel="import" href="../ct-category-settings/ct-category-settings.html">
+<link rel="import" href="../shared-styles/ct-application-theme.html">
+<link rel="import" href="../ct-message-template-api/ct-message-template-api.html">
 <!--
 `ct-view-settings-notifications-templates`
 Element to view notification templates on the Centular platform.
@@ -9,25 +26,271 @@ Element to view notification templates on the Centular platform.
 
 <dom-module id="ct-view-settings-notifications-templates">
   <template>
+      <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
     <style>
-      :host {
-        display: block;
+    :host {
+
+      --paper-input-container:{
+        border-top: 1px solid #ccc;
+        border-left: 1px solid #ccc;
+        border-right: 1px solid #ccc;
+        border-bottom: none;
+        padding: 0 !important;
+        margin-bottom: 0px;
+      };
+
+      --paper-input-container-input: {
+
+        margin-left: 10px;
+      };
+
+      --paper-input-container-label: {
+        margin-left: 10px;
+      };
+    }
+
+    .main-section {
+      margin-top:20px;
+    }
+    .form-group {
+      margin-bottom: 0 !important;
+    }
+    .purpose-heading {
+      padding:15px;
+      display: block;
+    }
+    .legend-text {
+      margin-left: 10px;
+      font-size: .667em;
+    }
+
+    paper-dropdown-menu.custom-dropdown {
+      width: 100%;
+      --paper-input-container: {
+        border-top:1px solid #ccc;
+        border-left:1px solid #ccc;
+        border-right:1px solid #ccc;
+        border-bottom: none;
+        padding: 0;
+        margin-bottom: 8px;
+      };
+      --paper-input-container-input: {
+        padding-left: 10px;
+      };
       }
     </style>
-    <h2>Hello [[prop1]]!</h2>
-  </template>
+    <ct-message-template-api id="messageTemplateApi"></ct-message-template-api>
+    <small>Change the notification templates for the following:<br/></small>
+   <template is="dom-repeat" items="{{_purposeList}}">
+     <paper-material>
+    <div class="main-section" style="margin-bottom:20px;">
+        <span class="purpose-heading">[[item.name]]</span>
+      <form is="iron-form"
+            id="form"
+            method="post"
+            disable-native-validation-ui
+            novalidate>
+        <div class="container-fluid">
+          <div class="row">
+            <div class="col-sm-4 col-xs-12">
+              <div class="row">
+                <div class="col-xs-12">
+                  <div class="form-group">
+                    <paper-input
+                      disabled="[[!_isStateEdit]]"
+                      id="input-[[item.id]]"
+                      class="ct-label ct-bordered"
+                      label="Email Template"
+                      type="text"
+                      name="email"
+                      value="[[value]]"
+                      auto-validate>
+                    </paper-input>
+                  </div>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-xs-12">
+                  <span class="legend-text">legend/template tags</span>
+                </div>
+              </div>
+            </div>
 
+            <div class="col-sm-2 col-xs-12">
+              <paper-button
+                      class$="btn [[_computeBtnStyle(_isStateEdit)]] [[item.id]]"
+                      on-tap="_editBtnHandler"
+                      raised>
+                [[_computeButtonText(_isStateEdit)]]
+              </paper-button>
+            </div>
+
+            <div class="col-sm-4 col-xs-12">
+              <div class="row">
+                <div class="col-xs-12">
+                  <div class="form-group">
+                    <paper-input
+                      disabled="[[!_isStateEdit]]"
+                        id="input-[[item.id]]"
+                        label="SMS Template"
+                        type="text"
+                        name="SMS"
+                        value="[[value]]"
+                        auto-validate>
+                    </paper-input>
+                  </div>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-xs-12">
+                  <span class="legend-text">legend/template tags</span>
+                </div>
+              </div>
+            </div>
+            <div class="col-sm-2 col-xs-12">
+              <paper-button
+                      class$="btn [[_computeBtnStyle(_isStateEdit)]]"
+                      on-tap="_editBtnHandler"
+                      raised>
+                [[_computeButtonText(_isStateEdit)]]
+              </paper-button>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  </paper-material>
+</template>
+</template>
   <script>
     Polymer({
 
       is: 'ct-view-settings-notifications-templates',
-
       properties: {
-        prop1: {
-          type: String,
-          value: 'ct-view-settings-notifications-templates',
+        _isStateEdit : {
+            type: Boolean,
+            value: function() {
+                return false;
+            }
         },
+        value: String,
+        _legendList: Array,
       },
+      listeners: {
+        'iron-form-presubmit':'_formHandler'
+      },
+      ready : function(){
+          this.init();
+      },
+
+      refresh: function() {
+          this.init();
+      },
+
+      init : function(){
+          this.refreshing = true;
+          this._getTemplates();
+          this._getTemplateByPurpose();
+          this._getPurposeLegend();
+      },
+
+      _submitForm : function() {
+        this.$.form.submit();
+      },
+
+      _computeButtonText: function(isEdit){
+          return (isEdit) ? 'Save' : 'Edit';
+      },
+
+      _computeBtnStyle : function(isEdit){
+          return (isEdit) ? "btn-primary" : "btn-default";
+      },
+      _toggleStatus : function(){
+         this._isStateEdit = !this._isStateEdit;
+     },
+
+      _editBtnHandler : function(e){
+          var input = this.$$('#input-[[item.id]]');
+          var value = input.value;
+          // switcher.editMode = !switcher.editMode;
+          if(this._isStateEdit) {
+            this.value = value;
+            this.fire('_updateTemplate', {"value": this.value});
+            this._toggleStatus();
+          }
+          else {
+            this._toggleStatus();
+          }
+      },
+
+      // _formHandler : function(e) {
+      //   e.preventDefault();
+      //   var form = this.$.form;
+      //
+      //   if (form.validate()) {
+      //     var formData = form.serialize(),
+      //             data = {};
+      //     data.email = formData.email;
+      //     data.sms = formData.sms;
+      //     }
+      //
+      //     this.fire('updateTemplate', data);
+      //   },
+
+
+      // _computeRequired: function(value) {
+      //   return !value.length;
+      // },
+
+
+      _getTemplates: function(){
+         this.$.messageTemplateApi.getTemplates()
+         .then(function (request) {
+           this._templateList = request.response;
+           console.log(this._templateList);
+           }.bind(this))
+           .catch(this.fire.bind(this, 'toast', {message: 'Failed to load templates', type: 'danger'}))
+           .finally(this.set.bind(this, 'refresh', false));
+     },
+
+     _getTemplateByPurpose: function() {
+       this.$.messageTemplateApi.getTemplateByPurpose()
+       .then(function (request) {
+         this._purposeList = request.response;
+         console.log(this._purposeList);
+         }.bind(this))
+         .catch(this.fire.bind(this, 'toast', {message: 'Failed to load template types', type: 'danger'}))
+         .finally(this.set.bind(this, 'refresh', false));
+     },
+
+     _getPurposeLegend: function () {
+       this.$.messageTemplateApi.getPurposeLegend(this.purposeID)
+       //.then(this._setPropertyResponse.bind(this, '_messageLegend'))
+       .then(function (request) {
+         this._legendList = request.response;
+         console.log(this._legendList);
+       }.bind(this))
+       .catch(this.fire.bind(this, 'toast', {message: 'Failed to load template legend', type: 'danger'}))
+       .finally(this.set.bind(this, 'refreshing', false));
+     },
+
+      _updateTemplate : function () {
+          this.$.messageTemplateApi.updateTemplate()
+          .then(this.fire.bind(this, 'toast', {message: 'Successfully updated Template', type: 'success'}))
+                .catch(this.fire.bind(this, 'toast', {message: 'Error updating Template.', type: 'danger'}))
+                .finally(function(){
+                    this.refreshing = false;
+                });
+        },
+
+          // _selectedPurposeTypeChanged: function(e) {
+          //   if (e.target.selectedItem) {
+          //     this._purposeType = e.target.selectedItem.getAttribute('key');
+          //     this._hidden = !(this._purposeType === 'sms' || this._purposeType === 'email');
+          //     this._required = !this._hidden;
+          //   }
+          // },
+
 
     });
   </script>
