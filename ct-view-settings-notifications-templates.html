@@ -1,5 +1,23 @@
 <link rel="import" href="../polymer/polymer.html">
 
+<link rel="import" href="../iron-pages/iron-pages.html">
+<link rel="import" href="../app-route/app-route.html">
+
+<link rel="import" href="../paper-tabs/paper-tabs.html">
+<link rel="import" href="../paper-material/paper-material.html">
+<link rel="import" href="../paper-progress/paper-progress.html">
+<link rel="import" href="../paper-input/paper-input-behavior.html">
+<link rel="import" href="../paper-dropdown-menu/paper-dropdown-menu.html">
+<link rel="import" href="../paper-listbox/paper-listbox.html">
+<link rel="import" href="../paper-item/paper-item.html">
+
+<link rel="import" href="../ct-core-utils/ct-app-styles.html">
+<link rel="import" href="../ct-core-utils/ct-api-consumer-behaviour.html">
+
+<link rel="import" href="../ct-single-notification-template/ct-single-notification-template.html">
+
+<link rel="import" href="../shared-styles/ct-application-theme.html">
+<link rel="import" href="../ct-message-template-api/ct-message-template-api.html">
 <!--
 `ct-view-settings-notifications-templates`
 Element to view notification templates on the Centular platform.
@@ -9,25 +27,138 @@ Element to view notification templates on the Centular platform.
 
 <dom-module id="ct-view-settings-notifications-templates">
   <template>
+      <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
     <style>
-      :host {
-        display: block;
+    :host {
+
+      --paper-input-container:{
+        border-top: 1px solid #ccc;
+        border-left: 1px solid #ccc;
+        border-right: 1px solid #ccc;
+        border-bottom: none;
+        padding: 0 !important;
+        margin-bottom: 0px;
+      };
+
+      --paper-input-container-input: {
+
+        margin-left: 10px;
+      };
+
+      --paper-input-container-label: {
+        margin-left: 10px;
+      };
+    }
+
+    .main-section {
+      margin-top:20px;
+    }
+    .form-group {
+      margin-bottom: 0 !important;
+    }
+    .purpose-heading {
+      padding:15px;
+      display: block;
+    }
+    .legend-text {
+      margin-left: 10px;
+      font-size: .667em;
+    }
+
+    paper-dropdown-menu.custom-dropdown {
+      width: 100%;
+      --paper-input-container: {
+        border-top:1px solid #ccc;
+        border-left:1px solid #ccc;
+        border-right:1px solid #ccc;
+        border-bottom: none;
+        padding: 0;
+        margin-bottom: 8px;
+      };
+      --paper-input-container-input: {
+        padding-left: 10px;
+      };
       }
     </style>
-    <h2>Hello [[prop1]]!</h2>
+    <ct-message-template-api id="messageTemplateApi"></ct-message-template-api>
+    <small>Change the notification templates for the following:<br/></small>
+    <template is="dom-repeat" items="{{_purposeList}}">
+      <paper-material>
+        <div class="main-section" style="margin-bottom:20px;">
+          <span class="purpose-heading">[[item.name]]</span>
+          <div class="container-fluid">
+            <div class="row">
+              <div class="col-xs-6">
+                <ct-single-notification-template type="sms" purpose="[[item.id]]"></ct-single-notification-template>
+              </div>
+              <div class="col-xs-6">
+                <ct-single-notification-template type="email" purpose="[[item.id]]"></ct-single-notification-template>
+              </div>
+            </div>
+          </div>
+        </div>
+      </paper-material>
+    </template>
   </template>
-
   <script>
     Polymer({
 
       is: 'ct-view-settings-notifications-templates',
-
       properties: {
-        prop1: {
-          type: String,
-          value: 'ct-view-settings-notifications-templates',
-        },
+        value: String
       },
+      listeners: {
+        'iron-form-presubmit':'_formHandler'
+      },
+
+      ready : function(){
+          this.init();
+      },
+
+      refresh: function() {
+          this.init();
+      },
+
+      init : function(){
+          this.refreshing = true;
+          this._getTemplates();
+          this._getTemplateByPurpose();
+      },
+
+      _submitForm : function() {
+        this.$.form.submit();
+      },
+
+
+
+      _getTemplates: function(){
+         this.$.messageTemplateApi.getTemplates()
+         .then(function (request) {
+           this._templateList = request.response;
+           console.log(this._templateList);
+           }.bind(this))
+           .catch(this.fire.bind(this, 'toast', {message: 'Failed to load templates', type: 'danger'}))
+           .finally(this.set.bind(this, 'refresh', false));
+     },
+
+     _getTemplateByPurpose: function() {
+       this.$.messageTemplateApi.getTemplateByPurpose()
+       .then(function (request) {
+         this._purposeList = request.response;
+         console.log(this._purposeList);
+         }.bind(this))
+         .catch(this.fire.bind(this, 'toast', {message: 'Failed to load template types', type: 'danger'}))
+         .finally(this.set.bind(this, 'refresh', false));
+     },
+
+      _updateTemplate : function () {
+          this.$.messageTemplateApi.updateTemplate()
+          .then(this.fire.bind(this, 'toast', {message: 'Successfully updated Template', type: 'success'}))
+                .catch(this.fire.bind(this, 'toast', {message: 'Error updating Template.', type: 'danger'}))
+                .finally(function(){
+                    this.refreshing = false;
+                });
+        },
 
     });
   </script>
