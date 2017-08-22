@@ -89,10 +89,10 @@ Element to view notification templates on the Centular platform.
           <div class="container-fluid">
             <div class="row">
               <div class="col-xs-6">
-                <ct-single-notification-template type="sms" purpose="[[item.id]]"></ct-single-notification-template>
+                <ct-single-notification-template type="sms" templateText="[[item.value]]" purpose="[[item.id]]"></ct-single-notification-template>
               </div>
               <div class="col-xs-6">
-                <ct-single-notification-template type="email" purpose="[[item.id]]"></ct-single-notification-template>
+                <ct-single-notification-template type="email" templateText="[[item.value]]" purpose="[[item.id]]"></ct-single-notification-template>
               </div>
             </div>
           </div>
@@ -105,10 +105,12 @@ Element to view notification templates on the Centular platform.
 
       is: 'ct-view-settings-notifications-templates',
       properties: {
-        value: String
+        value: String,
+        templateText: String,
       },
       listeners: {
-        'iron-form-presubmit':'_formHandler'
+        'iron-form-presubmit':'_formHandler',
+        'ct-save-setting-item-tapped' : '_updateTemplate'
       },
 
       ready : function(){
@@ -128,8 +130,6 @@ Element to view notification templates on the Centular platform.
       _submitForm : function() {
         this.$.form.submit();
       },
-
-
 
       _getTemplates: function(){
          this.$.messageTemplateApi.getTemplates()
@@ -151,8 +151,8 @@ Element to view notification templates on the Centular platform.
          .finally(this.set.bind(this, 'refresh', false));
      },
 
-      _updateTemplate : function () {
-          this.$.messageTemplateApi.updateTemplate()
+      _updateTemplate : function (updateTemplate) {
+          this.$.messageTemplateApi.updateTemplate(updateTemplate.detail)
           .then(this.fire.bind(this, 'toast', {message: 'Successfully updated Template', type: 'success'}))
                 .catch(this.fire.bind(this, 'toast', {message: 'Error updating Template.', type: 'danger'}))
                 .finally(function(){
